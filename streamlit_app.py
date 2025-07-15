@@ -1,11 +1,11 @@
 import streamlit as st
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta # Pastikan date dan timedelta ada di sini
 from typing import Dict, List, Any
-import pandas as pd # <-- Tambahkan import pandas
+import pandas as pd
 
 # ==============================================================================
-# KELAS LOGIKA BISNIS (DENGAN PENAMBAHAN FITUR HISTORY)
+# KELAS LOGIKA BISNIS (TIDAK ADA PERUBAHAN)
 # ==============================================================================
 
 class SugarTracker:
@@ -26,7 +26,7 @@ class SugarTracker:
         self.daily_intake: List[Dict] = []
         self.user_profile: Dict = {}
         
-        # --- Fitur Riwayat Baru ---
+        # --- Fitur Riwayat ---
         self.history_file = "gula_check_history.json"
         self.history = self._load_history()
 
@@ -36,7 +36,6 @@ class SugarTracker:
             with open(self.history_file, 'r') as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
-            # Jika file tidak ada atau kosong, kembalikan dictionary kosong
             return {}
 
     def _save_history(self):
@@ -51,7 +50,6 @@ class SugarTracker:
             today_str = date.today().strftime('%Y-%m-%d')
             limits = self.get_recommended_limit()
             
-            # Pastikan limit AHA adalah angka
             aha_limit_value = limits.get('aha') if isinstance(limits.get('aha'), (int, float)) else 0
 
             self.history[today_str] = {
@@ -61,17 +59,14 @@ class SugarTracker:
             }
             self._save_history()
         
-        # Reset asupan harian setelah diarsipkan
         self.reset_daily_intake()
 
     def _initialize_database(self):
         """
-        Menginisialisasi database makanan dengan struktur yang lebih detail.
-        (Tidak ada perubahan di fungsi ini)
+        Menginisialisasi database makanan. (Tidak ada perubahan di fungsi ini)
         """
         self.food_database = {
-            # ... (database makanan Anda yang sangat lengkap tetap di sini, tidak perlu diubah) ...
-            # Minuman
+            # ... (Seluruh database makanan Anda yang sangat lengkap ada di sini, tidak diubah) ...
             'teh_manis': {'gula_per_100': 10.0, 'satuan_umum': 'gelas', 'berat_satuan_umum': 200},
             'kopi_manis': {'gula_per_100': 8.0, 'satuan_umum': 'cangkir', 'berat_satuan_umum': 150},
             'soda_cola': {'gula_per_100': 10.6, 'satuan_umum': 'kaleng', 'berat_satuan_umum': 250},
@@ -84,14 +79,10 @@ class SugarTracker:
             'susu_coklat': {'gula_per_100': 9.0, 'satuan_umum': 'kotak', 'berat_satuan_umum': 200},
             'yogurt_drink': {'gula_per_100': 11.0, 'satuan_umum': 'botol', 'berat_satuan_umum': 200},
             'air_kelapa_kemasan': {'gula_per_100': 6.0, 'satuan_umum': 'kotak', 'berat_satuan_umum': 250},
-            
-            # Minuman Kemasan
             'teh_kotak': {'gula_per_100': 8.5, 'satuan_umum': 'kotak', 'berat_satuan_umum': 200},
             'kopi_instan_sachet': {'gula_per_100': 50.0, 'satuan_umum': 'sachet', 'berat_satuan_umum': 20},
             'minuman_isotonik': {'gula_per_100': 6.0, 'satuan_umum': 'botol', 'berat_satuan_umum': 500},
             'susu_uht_full_cream': {'gula_per_100': 4.5, 'satuan_umum': 'kotak', 'berat_satuan_umum': 250},
-
-            # Minuman Kekinian
             'boba_milk_tea': {'gula_per_100': 18.0, 'satuan_umum': 'cup', 'berat_satuan_umum': 350},
             'es_kopi_susu_gula_aren': {'gula_per_100': 15.0, 'satuan_umum': 'cup', 'berat_satuan_umum': 250},
             'thai_tea': {'gula_per_100': 16.0, 'satuan_umum': 'cup', 'berat_satuan_umum': 300},
@@ -100,8 +91,6 @@ class SugarTracker:
             'greentea_latte': {'gula_per_100': 17.0, 'satuan_umum': 'cup', 'berat_satuan_umum': 350},
             'red_velvet_latte': {'gula_per_100': 19.0, 'satuan_umum': 'cup', 'berat_satuan_umum': 350},
             'es_coklat': {'gula_per_100': 15.0, 'satuan_umum': 'gelas', 'berat_satuan_umum': 300},
-
-            # Makanan Manis
             'coklat_batang': {'gula_per_100': 47.0, 'satuan_umum': 'batang', 'berat_satuan_umum': 50},
             'brownies_coklat': {'gula_per_100': 40.0, 'satuan_umum': 'potong', 'berat_satuan_umum': 60},
             'permen': {'gula_per_100': 85.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 5},
@@ -115,8 +104,6 @@ class SugarTracker:
             'marshmallow': {'gula_per_100': 81.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 7},
             'kue_cubit': {'gula_per_100': 25.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 20},
             'lapis_legit': {'gula_per_100': 40.0, 'satuan_umum': 'potong', 'berat_satuan_umum': 30},
-
-            # Buah-buahan
             'apel': {'gula_per_100': 10.4, 'satuan_umum': 'buah', 'berat_satuan_umum': 180},
             'pisang': {'gula_per_100': 12.2, 'satuan_umum': 'buah', 'berat_satuan_umum': 120},
             'jeruk': {'gula_per_100': 9.4, 'satuan_umum': 'buah', 'berat_satuan_umum': 130},
@@ -128,8 +115,6 @@ class SugarTracker:
             'nanas': {'gula_per_100': 9.9, 'satuan_umum': 'potong', 'berat_satuan_umum': 100},
             'melon': {'gula_per_100': 8.1, 'satuan_umum': 'potong', 'berat_satuan_umum': 150},
             'kurma': {'gula_per_100': 63.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 7},
-            
-            # Makanan Olahan
             'roti_manis': {'gula_per_100': 12.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 60},
             'sereal_manis': {'gula_per_100': 30.0, 'satuan_umum': 'mangkuk', 'berat_satuan_umum': 40},
             'granola': {'gula_per_100': 6.0, 'satuan_umum': 'mangkuk', 'berat_satuan_umum': 50},
@@ -141,8 +126,6 @@ class SugarTracker:
             'kondensed_milk': {'gula_per_100': 54.0, 'satuan_umum': 'sendok makan', 'berat_satuan_umum': 20},
             'roti_tawar': {'gula_per_100': 5.0, 'satuan_umum': 'lembar', 'berat_satuan_umum': 25},
             'selai_kacang': {'gula_per_100': 9.0, 'satuan_umum': 'sendok makan', 'berat_satuan_umum': 16},
-
-            # Makanan Tradisional
             'klepon': {'gula_per_100': 20.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 20},
             'onde_onde': {'gula_per_100': 25.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 40},
             'es_cendol': {'gula_per_100': 15.0, 'satuan_umum': 'gelas', 'berat_satuan_umum': 300},
@@ -156,8 +139,6 @@ class SugarTracker:
             'serabi': {'gula_per_100': 18.0, 'satuan_umum': 'buah', 'berat_satuan_umum': 60},
             'getuk': {'gula_per_100': 30.0, 'satuan_umum': 'potong', 'berat_satuan_umum': 50},
             'cenil': {'gula_per_100': 22.0, 'satuan_umum': 'porsi', 'berat_satuan_umum': 100},
-
-            # Makanan Berat & Sarapan
             'nasi_goreng': {'gula_per_100': 4.0, 'satuan_umum': 'porsi', 'berat_satuan_umum': 350},
             'mie_goreng_instan': {'gula_per_100': 8.0, 'satuan_umum': 'porsi', 'berat_satuan_umum': 120},
             'bubur_ayam': {'gula_per_100': 2.0, 'satuan_umum': 'porsi', 'berat_satuan_umum': 350},
@@ -174,13 +155,12 @@ class SugarTracker:
             'sushi': {'gula_per_100': 5.0, 'satuan_umum': 'potong', 'berat_satuan_umum': 30},
             'nasi_putih': {'gula_per_100': 0.1, 'satuan_umum': 'porsi', 'berat_satuan_umum': 200},
             'gulai_ayam': {'gula_per_100': 4.0, 'satuan_umum': 'porsi', 'berat_satuan_umum': 400},
-            
-            # Saus & Bumbu
             'kecap_manis': {'gula_per_100': 60.0, 'satuan_umum': 'sendok makan', 'berat_satuan_umum': 15},
             'saus_tomat_botolan': {'gula_per_100': 22.0, 'satuan_umum': 'sendok makan', 'berat_satuan_umum': 15},
             'saus_sambal_botolan': {'gula_per_100': 15.0, 'satuan_umum': 'sendok makan', 'berat_satuan_umum': 15}
         }
 
+    # ... Sisa fungsi di dalam kelas SugarTracker tidak berubah ...
     def set_user_profile(self, nama: str, umur: int, jenis_kelamin: str, berat_badan: float):
         self.user_profile = {
             'nama': nama, 'umur': umur, 'jenis_kelamin': jenis_kelamin.lower(),
@@ -236,8 +216,9 @@ class SugarTracker:
     def reset_daily_intake(self):
         self.daily_intake = []
 
+
 # ==============================================================================
-# BAGIAN ANTARMUKA STREAMLIT (DENGAN HALAMAN HISTORY)
+# BAGIAN ANTARMUKA STREAMLIT
 # ==============================================================================
 
 def get_greeting():
@@ -267,7 +248,6 @@ with st.sidebar:
     if user_name:
         st.write(f"Halo, **{user_name}**!")
     
-    # --- Tambahkan Menu Riwayat & Grafik ---
     menu = st.radio(
         "Pilih Menu:",
         ("Laporan Harian", "Tambah Asupan", "Riwayat & Grafik", "Profil Pengguna", "Database Makanan"),
@@ -280,6 +260,8 @@ with st.sidebar:
 # --- Tampilan Halaman ---
 # ==============================================================================
 
+# ... Halaman "Laporan Harian", "Tambah Asupan", dll tidak berubah ...
+
 if menu == "Laporan Harian":
     st.title(get_greeting())
     user_name = st.session_state.tracker.user_profile.get('nama', 'Pengguna')
@@ -291,17 +273,14 @@ if menu == "Laporan Harian":
         total_gula = st.session_state.tracker.calculate_daily_sugar()
         limits = st.session_state.tracker.get_recommended_limit()
 
-        # Tampilkan metrik utama
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Gula Hari Ini", f"{total_gula:.2f} g")
         col2.metric("Batas Kemenkes", f"{limits['kemenkes']} g")
         col3.metric("Batas AHA", f"{limits['aha']} g")
 
-        # Tampilkan progress bar
         st.markdown("---")
         st.subheader("Progres Menuju Batas Harian")
         
-        # Progress untuk AHA
         if isinstance(limits['aha'], (int, float)) and limits['aha'] > 0:
             progress_aha = min(total_gula / limits['aha'], 1.0)
             st.write(f"Batas AHA ({limits['aha']}g)")
@@ -309,7 +288,6 @@ if menu == "Laporan Harian":
             if total_gula > limits['aha']:
                 st.error("Asupan gula Anda telah MELEBIHI batas yang direkomendasikan oleh AHA!")
         
-        # Progress untuk Kemenkes
         if limits['kemenkes'] > 0:
             progress_kemenkes = min(total_gula / limits['kemenkes'], 1.0)
             st.write(f"Batas Kemenkes ({limits['kemenkes']}g)")
@@ -324,7 +302,6 @@ if menu == "Laporan Harian":
         else:
             st.dataframe(st.session_state.tracker.daily_intake, use_container_width=True)
 
-        # --- Tombol Reset yang Dimodifikasi ---
         if st.button("Simpan & Reset Hari Ini"):
             st.session_state.tracker.archive_and_reset_day()
             st.success("Asupan hari ini berhasil diarsipkan dan direset!")
@@ -361,43 +338,74 @@ elif menu == "Tambah Asupan":
                 else:
                     st.error(message)
 
-# --- HALAMAN BARU: RIWAYAT & GRAFIK ---
+# --- INI BAGIAN YANG DIPERBARUI ---
 elif menu == "Riwayat & Grafik":
     st.header("📈 Riwayat & Grafik Konsumsi Gula")
     history_data = st.session_state.tracker.history
 
     if not history_data:
-        st.info("Belum ada riwayat yang tersimpan. Gunakan aplikasi dan tekan 'Simpan & Reset Hari Ini' di Laporan Harian untuk mulai membangun riwayat Anda.")
+        st.info("Belum ada riwayat yang tersimpan. Tekan 'Simpan & Reset Hari Ini' di Laporan Harian untuk memulai.")
     else:
-        st.subheader("Grafik Konsumsi 30 Hari Terakhir")
+        all_dates_str = sorted(history_data.keys())
+        all_dates_obj = [datetime.strptime(d, '%Y-%m-%d').date() for d in all_dates_str]
 
-        # Mengambil data dari riwayat
-        dates = sorted(history_data.keys())
+        # --- Bagian Menu Tanggal ---
+        st.markdown("##### Pilih Rentang Tanggal")
+        col1, col2 = st.columns(2)
+        with col1:
+            # Nilai default (value) diatur ke 7 hari yang lalu
+            start_date = st.date_input(
+                "Tanggal Mulai", 
+                value=date.today() - timedelta(days=6), # <-- INI PENGATURAN 7 HARI
+                min_value=min(all_dates_obj),
+                max_value=max(all_dates_obj),
+                key="start_date_picker"
+            )
+        with col2:
+            # Nilai default (value) diatur ke hari ini
+            end_date = st.date_input(
+                "Tanggal Akhir", 
+                value=date.today(),
+                min_value=min(all_dates_obj),
+                max_value=max(all_dates_obj),
+                key="end_date_picker"
+            )
         
-        # Batasi hanya 30 hari terakhir
-        recent_dates = dates[-30:]
-        
-        chart_data = {
-            "Tanggal": recent_dates,
-            "Total Gula (g)": [history_data[d]['total_gula'] for d in recent_dates],
-            "Batas Kemenkes (g)": [history_data[d]['limit_kemenkes'] for d in recent_dates],
-            "Batas AHA (g)": [history_data[d]['limit_aha'] for d in recent_dates]
-        }
-        
-        # Buat DataFrame pandas untuk grafik
-        df = pd.DataFrame(chart_data)
-        df.set_index("Tanggal", inplace=True)
+        if start_date > end_date:
+            st.error("Tanggal mulai tidak boleh melebihi tanggal akhir.")
+            st.stop()
 
-        # Tampilkan grafik garis
-        st.line_chart(df)
-        
-        st.markdown("---")
-        st.subheader("Tabel Rincian Riwayat")
-        
-        # Tampilkan data mentah dalam bentuk tabel (dibalik agar data terbaru di atas)
-        display_df = df.reset_index().sort_values(by="Tanggal", ascending=False)
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        # Filter data berdasarkan menu tanggal yang dipilih
+        filtered_dates = [
+            d for d in all_dates_str 
+            if start_date <= datetime.strptime(d, '%Y-%m-%d').date() <= end_date
+        ]
 
+        if not filtered_dates:
+            st.warning("Tidak ada data riwayat pada rentang tanggal yang dipilih.")
+        else:
+            st.markdown("---")
+            st.subheader(f"Grafik Konsumsi dari {start_date.strftime('%d %b %Y')} hingga {end_date.strftime('%d %b %Y')}")
+            
+            chart_data = {
+                "Tanggal": filtered_dates,
+                "Total Gula (g)": [history_data[d]['total_gula'] for d in filtered_dates],
+                "Batas Kemenkes (g)": [history_data[d]['limit_kemenkes'] for d in filtered_dates],
+                "Batas AHA (g)": [history_data[d]['limit_aha'] for d in filtered_dates]
+            }
+            
+            df = pd.DataFrame(chart_data)
+            df.set_index("Tanggal", inplace=True)
+
+            st.line_chart(df)
+            
+            st.markdown("---")
+            st.subheader("Tabel Rincian Riwayat")
+            display_df = df.reset_index().sort_values(by="Tanggal", ascending=False)
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+
+# ... Halaman "Profil Pengguna" dan "Database Makanan" tidak berubah ...
 
 elif menu == "Profil Pengguna":
     st.header("Profil Pengguna")
@@ -409,7 +417,6 @@ elif menu == "Profil Pengguna":
         with col2:
             berat_badan = st.number_input("Berat Badan (kg)", min_value=1.0, max_value=300.0, value=st.session_state.tracker.user_profile.get('berat_badan', 60.0), format="%.1f")
         
-        # Mendapatkan index yang benar untuk jenis kelamin
         gender_index = 0
         if st.session_state.tracker.user_profile.get('jenis_kelamin') == 'wanita':
             gender_index = 1
