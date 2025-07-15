@@ -1,0 +1,11 @@
+{
+    "user_profile": {
+        "nama": "",
+        "umur": ,
+        "jenis_kelamin": "",
+        "berat_badan": ,
+        "kategori": ""
+    },
+    "daily_intake": [],
+    "date": ""
+}
