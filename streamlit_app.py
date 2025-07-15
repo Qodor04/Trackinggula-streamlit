@@ -1,19 +1,21 @@
 import streamlit as st
 import json
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, List, Any
+import pandas as pd # <-- Tambahkan import pandas
 
 # ==============================================================================
-# KELAS LOGIKA BISNIS (TIDAK BERUBAH)
+# KELAS LOGIKA BISNIS (DENGAN PENAMBAHAN FITUR HISTORY)
 # ==============================================================================
 
 class SugarTracker:
     """
     Sebuah kelas untuk melacak asupan gula harian berdasarkan rekomendasi
     dari Kemenkes RI dan American Heart Association (AHA).
+    Kini dengan fitur penyimpanan riwayat.
     """
     def __init__(self):
-        """Inisialisasi tracker dengan nilai default dan database makanan."""
+        """Inisialisasi tracker dengan nilai default, database, dan riwayat."""
         self.kemenkes_limit = 50
         self.aha_limits = {
             'pria_dewasa': 36,
@@ -23,12 +25,52 @@ class SugarTracker:
         self._initialize_database()
         self.daily_intake: List[Dict] = []
         self.user_profile: Dict = {}
+        
+        # --- Fitur Riwayat Baru ---
+        self.history_file = "gula_check_history.json"
+        self.history = self._load_history()
+
+    def _load_history(self) -> Dict:
+        """Memuat riwayat konsumsi dari file JSON."""
+        try:
+            with open(self.history_file, 'r') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Jika file tidak ada atau kosong, kembalikan dictionary kosong
+            return {}
+
+    def _save_history(self):
+        """Menyimpan data riwayat ke file JSON."""
+        with open(self.history_file, 'w') as f:
+            json.dump(self.history, f, indent=4)
+
+    def archive_and_reset_day(self):
+        """Mengarsipkan total hari ini ke riwayat dan mereset asupan."""
+        total_gula = self.calculate_daily_sugar()
+        if total_gula > 0 and self.user_profile:
+            today_str = date.today().strftime('%Y-%m-%d')
+            limits = self.get_recommended_limit()
+            
+            # Pastikan limit AHA adalah angka
+            aha_limit_value = limits.get('aha') if isinstance(limits.get('aha'), (int, float)) else 0
+
+            self.history[today_str] = {
+                'total_gula': round(total_gula, 2),
+                'limit_kemenkes': limits.get('kemenkes'),
+                'limit_aha': aha_limit_value
+            }
+            self._save_history()
+        
+        # Reset asupan harian setelah diarsipkan
+        self.reset_daily_intake()
 
     def _initialize_database(self):
         """
         Menginisialisasi database makanan dengan struktur yang lebih detail.
+        (Tidak ada perubahan di fungsi ini)
         """
         self.food_database = {
+            # ... (database makanan Anda yang sangat lengkap tetap di sini, tidak perlu diubah) ...
             # Minuman
             'teh_manis': {'gula_per_100': 10.0, 'satuan_umum': 'gelas', 'berat_satuan_umum': 200},
             'kopi_manis': {'gula_per_100': 8.0, 'satuan_umum': 'cangkir', 'berat_satuan_umum': 150},
@@ -195,7 +237,7 @@ class SugarTracker:
         self.daily_intake = []
 
 # ==============================================================================
-# BAGIAN ANTARMUKA STREAMLIT (UI KEMBALI KE VERSI AWAL)
+# BAGIAN ANTARMUKA STREAMLIT (DENGAN HALAMAN HISTORY)
 # ==============================================================================
 
 def get_greeting():
@@ -216,7 +258,6 @@ if 'tracker' not in st.session_state:
 
 st.set_page_config(page_title="GulaCheck", page_icon="🍭", layout="wide")
 
-
 # --- Sidebar ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2723/2723331.png", width=100)
@@ -226,9 +267,10 @@ with st.sidebar:
     if user_name:
         st.write(f"Halo, **{user_name}**!")
     
+    # --- Tambahkan Menu Riwayat & Grafik ---
     menu = st.radio(
         "Pilih Menu:",
-        ("Laporan Harian", "Profil Pengguna", "Tambah Asupan", "Database Makanan"),
+        ("Laporan Harian", "Tambah Asupan", "Riwayat & Grafik", "Profil Pengguna", "Database Makanan"),
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -282,28 +324,11 @@ if menu == "Laporan Harian":
         else:
             st.dataframe(st.session_state.tracker.daily_intake, use_container_width=True)
 
-        if st.button("Reset Asupan Hari Ini"):
-            st.session_state.tracker.reset_daily_intake()
-            st.success("Asupan harian berhasil direset!")
+        # --- Tombol Reset yang Dimodifikasi ---
+        if st.button("Simpan & Reset Hari Ini"):
+            st.session_state.tracker.archive_and_reset_day()
+            st.success("Asupan hari ini berhasil diarsipkan dan direset!")
             st.rerun()
-
-elif menu == "Profil Pengguna":
-    st.header("Profil Pengguna")
-    with st.form("profile_form"):
-        nama = st.text_input("Nama Lengkap", value=st.session_state.tracker.user_profile.get('nama', ''))
-        col1, col2 = st.columns(2)
-        with col1:
-            umur = st.number_input("Umur (tahun)", min_value=1, max_value=120, value=st.session_state.tracker.user_profile.get('umur', 25))
-        with col2:
-            berat_badan = st.number_input("Berat Badan (kg)", min_value=1.0, max_value=300.0, value=st.session_state.tracker.user_profile.get('berat_badan', 60.0), format="%.1f")
-        jenis_kelamin = st.selectbox("Jenis Kelamin", ["Pria", "Wanita"], index=0 if st.session_state.tracker.user_profile.get('jenis_kelamin') == 'pria' else 1)
-        
-        submitted = st.form_submit_button("Simpan Profil")
-        if submitted:
-            st.session_state.tracker.set_user_profile(nama, umur, jenis_kelamin, berat_badan)
-            st.success(f"Profil untuk {nama} berhasil disimpan!")
-            limits = st.session_state.tracker.get_recommended_limit()
-            st.info(f"Batas konsumsi gula Anda: Kemenkes: {limits['kemenkes']}g, AHA: {limits['aha']}g per hari.")
 
 elif menu == "Tambah Asupan":
     st.header("Tambah Asupan")
@@ -335,6 +360,67 @@ elif menu == "Tambah Asupan":
                     st.success(message)
                 else:
                     st.error(message)
+
+# --- HALAMAN BARU: RIWAYAT & GRAFIK ---
+elif menu == "Riwayat & Grafik":
+    st.header("📈 Riwayat & Grafik Konsumsi Gula")
+    history_data = st.session_state.tracker.history
+
+    if not history_data:
+        st.info("Belum ada riwayat yang tersimpan. Gunakan aplikasi dan tekan 'Simpan & Reset Hari Ini' di Laporan Harian untuk mulai membangun riwayat Anda.")
+    else:
+        st.subheader("Grafik Konsumsi 30 Hari Terakhir")
+
+        # Mengambil data dari riwayat
+        dates = sorted(history_data.keys())
+        
+        # Batasi hanya 30 hari terakhir
+        recent_dates = dates[-30:]
+        
+        chart_data = {
+            "Tanggal": recent_dates,
+            "Total Gula (g)": [history_data[d]['total_gula'] for d in recent_dates],
+            "Batas Kemenkes (g)": [history_data[d]['limit_kemenkes'] for d in recent_dates],
+            "Batas AHA (g)": [history_data[d]['limit_aha'] for d in recent_dates]
+        }
+        
+        # Buat DataFrame pandas untuk grafik
+        df = pd.DataFrame(chart_data)
+        df.set_index("Tanggal", inplace=True)
+
+        # Tampilkan grafik garis
+        st.line_chart(df)
+        
+        st.markdown("---")
+        st.subheader("Tabel Rincian Riwayat")
+        
+        # Tampilkan data mentah dalam bentuk tabel (dibalik agar data terbaru di atas)
+        display_df = df.reset_index().sort_values(by="Tanggal", ascending=False)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+
+elif menu == "Profil Pengguna":
+    st.header("Profil Pengguna")
+    with st.form("profile_form"):
+        nama = st.text_input("Nama Lengkap", value=st.session_state.tracker.user_profile.get('nama', ''))
+        col1, col2 = st.columns(2)
+        with col1:
+            umur = st.number_input("Umur (tahun)", min_value=1, max_value=120, value=st.session_state.tracker.user_profile.get('umur', 25))
+        with col2:
+            berat_badan = st.number_input("Berat Badan (kg)", min_value=1.0, max_value=300.0, value=st.session_state.tracker.user_profile.get('berat_badan', 60.0), format="%.1f")
+        
+        # Mendapatkan index yang benar untuk jenis kelamin
+        gender_index = 0
+        if st.session_state.tracker.user_profile.get('jenis_kelamin') == 'wanita':
+            gender_index = 1
+        jenis_kelamin = st.selectbox("Jenis Kelamin", ["Pria", "Wanita"], index=gender_index)
+        
+        submitted = st.form_submit_button("Simpan Profil")
+        if submitted:
+            st.session_state.tracker.set_user_profile(nama, umur, jenis_kelamin, berat_badan)
+            st.success(f"Profil untuk {nama} berhasil disimpan!")
+            limits = st.session_state.tracker.get_recommended_limit()
+            st.info(f"Batas konsumsi gula Anda: Kemenkes: {limits['kemenkes']}g, AHA: {limits['aha']}g per hari.")
 
 elif menu == "Database Makanan":
     st.header("Database Makanan")
