@@ -364,7 +364,7 @@ def colored_progress_bar(progress, bar_color_var):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/128/11748/11748885.png", width=100) # Ikon baru
+    st.image("https://cdn-icons-png.flaticon.com/512/1837/1837189.png", width=100) # Ikon baru
     st.title("GluPal")
     
     # Cek jika tracker sudah diinisialisasi sebelum mengaksesnya
