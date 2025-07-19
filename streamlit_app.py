@@ -254,7 +254,7 @@ class SugarTracker:
 if 'tracker' not in st.session_state:
     st.session_state.tracker = SugarTracker()
 
-st.set_page_config(page_title="GulaCheck", page_icon="🎨", layout="wide")
+st.set_page_config(page_title="GluPal", page_icon="🍬", layout="wide")
 
 # --- CSS Kustom dengan Variabel untuk Tema Terang & Gelap ---
 st.markdown("""
@@ -353,7 +353,7 @@ def colored_progress_bar(progress):
 # --- Sidebar ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/9906/9906605.png", width=100)
-    st.title("GulaCheck")
+    st.title("GluPal")
     
     user_name = st.session_state.tracker.user_profile.get('nama', "Pengguna")
     st.write(f"Halo, *{user_name}*!")
