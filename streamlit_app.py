@@ -352,7 +352,7 @@ def colored_progress_bar(progress):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/9906/9906605.png", width=100)
+    st.image("https://cdn-icons-png.flaticon.com/128/18371/18371806.png", width=100)
     st.title("GluPal")
     
     user_name = st.session_state.tracker.user_profile.get('nama', "Pengguna")
