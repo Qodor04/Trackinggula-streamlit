@@ -4,6 +4,7 @@ from datetime import datetime, date, timedelta
 from typing import Dict, List, Any
 import pandas as pd
 import plotly.graph_objects as go
+from zoneinfo import ZoneInfo # Impor untuk zona waktu
 
 # ==============================================================================
 # KELAS LOGIKA BISNIS (DENGAN DATABASE LENGKAP)
@@ -16,7 +17,7 @@ class SugarTracker:
     Kini dengan fitur penyimpanan riwayat.
     """
     # --- Perbaikan Bug: _init_ harus menggunakan dua garis bawah ---
-    def __init__(self):
+    def _init_(self):
         """Inisialisasi tracker dengan nilai default, database, dan riwayat."""
         self.kemenkes_limit = 50
         self.aha_limits = {
@@ -266,6 +267,8 @@ st.markdown("""
         --text-color: #0d1117;
         --secondary-text-color: #555;
         --primary-accent-color: #1E90FF; /* DodgerBlue */
+        --kemenkes-color: #dc3545; /* Merah untuk Kemenkes */
+        --aha-color: #ffc107; /* Oranye untuk AHA */
         --sugar-color: #FF69B4; /* HotPink */
         --safe-color: #28a745;
         --warning-color: #ffc107;
@@ -282,6 +285,8 @@ st.markdown("""
             --text-color: #c9d1d9;
             --secondary-text-color: #8b949e;
             --primary-accent-color: #58a6ff;
+            --kemenkes-color: #f85149;
+            --aha-color: #e3b341;
             --sugar-color: #f781c6;
             --safe-color: #3fb950;
             --warning-color: #e3b341;
@@ -315,7 +320,14 @@ st.markdown("""
         font-weight: bold;
         color: var(--primary-accent-color);
     }
-    .metric-card .sugar-value { color: var(--sugar-color); }
+    /* Warna khusus untuk setiap metrik */
+    .metric-card.kemenkes { border-left-color: var(--kemenkes-color); }
+    .metric-card.kemenkes p { color: var(--kemenkes-color); }
+    .metric-card.aha { border-left-color: var(--aha-color); }
+    .metric-card.aha p { color: var(--aha-color); }
+    .metric-card.sugar { border-left-color: var(--sugar-color); }
+    .metric-card.sugar p { color: var(--sugar-color); }
+
     .stButton>button {
         border-radius: 20px;
         border: 2px solid var(--primary-accent-color);
@@ -331,20 +343,20 @@ st.markdown("""
 
 # --- Fungsi Bantuan UI ---
 def get_greeting():
-    hour = datetime.now().hour
+    # Selalu gunakan Zona Waktu Indonesia
+    wib_timezone = ZoneInfo("Asia/Jakarta")
+    current_time_wib = datetime.now(wib_timezone)
+    hour = current_time_wib.hour
+
     if 5 <= hour < 12: return "Selamat Pagi ☀"
     elif 12 <= hour < 15: return "Selamat Siang 🌤"
     elif 15 <= hour < 19: return "Selamat Sore 🌇"
     else: return "Selamat Malam 🌙"
 
-def colored_progress_bar(progress):
-    if progress < 0.75: color_var = "var(--safe-color)"
-    elif progress < 1.0: color_var = "var(--warning-color)"
-    else: color_var = "var(--danger-color)"
-    
+def colored_progress_bar(progress, bar_color_var):
     st.markdown(f"""
     <div style="background-color: var(--progress-track-color); border-radius: 10px; padding: 3px;">
-        <div style="background-color: {color_var}; width: {min(progress * 100, 100)}%; height: 22px; border-radius: 7px; text-align: center; color: white; font-weight: bold; line-height: 22px;">
+        <div style="background-color: {bar_color_var}; width: {min(progress * 100, 100)}%; height: 22px; border-radius: 7px; text-align: center; color: white; font-weight: bold; line-height: 22px;">
             {int(progress * 100)}%
         </div>
     </div>
@@ -352,10 +364,14 @@ def colored_progress_bar(progress):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/128/18371/18371806.png", width=100)
+    st.image("https://cdn-icons-png.flaticon.com/512/1837/1837189.png", width=100) # Ikon baru
     st.title("GluPal")
     
-    user_name = st.session_state.tracker.user_profile.get('nama', "Pengguna")
+    # Cek jika tracker sudah diinisialisasi sebelum mengaksesnya
+    if 'tracker' in st.session_state and st.session_state.tracker.user_profile:
+        user_name = st.session_state.tracker.user_profile.get('nama', "Pengguna")
+    else:
+        user_name = "Pengguna"
     st.write(f"Halo, *{user_name}*!")
 
     menu_options = { 
@@ -377,6 +393,8 @@ with st.sidebar:
 
 if menu == "Laporan Harian":
     st.title(get_greeting())
+    # Ambil user_name lagi di sini untuk memastikan update
+    user_name = st.session_state.tracker.user_profile.get('nama', 'Pengguna')
     st.subheader(f"Ini ringkasan gula harianmu, {user_name}.")
     
     if not st.session_state.tracker.user_profile:
@@ -386,24 +404,34 @@ if menu == "Laporan Harian":
         limits = st.session_state.tracker.get_recommended_limit()
 
         col1, col2, col3 = st.columns(3)
-        aha_val = limits['aha'] if isinstance(limits['aha'], (int, float)) else "N/A"
-        sisa_gula = max(0, limits.get('aha', 0) - total_gula) if isinstance(limits.get('aha'), (int, float)) else "N/A"
+        aha_val = limits.get('aha', "N/A")
+        kemenkes_val = limits.get('kemenkes', "N/A")
 
         with col1:
-            st.markdown(f'<div class="metric-card"><h3>🍬 Total Gula</h3><p class="sugar-value">{total_gula:.2f} g</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card sugar"><h3>🍬 Total Gula</h3><p>{total_gula:.2f} g</p></div>', unsafe_allow_html=True)
         with col2:
-            st.markdown(f'<div class="metric-card"><h3>❤ Batas AHA</h3><p>{aha_val} g</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card aha"><h3>🧡 Batas AHA</h3><p>{aha_val} g</p></div>', unsafe_allow_html=True)
         with col3:
-             sisa_val = f"{sisa_gula:.2f}" if isinstance(sisa_gula, (int, float)) else sisa_gula
-             st.markdown(f'<div class="metric-card"><h3>🏁 Sisa Jatah</h3><p>{sisa_val} g</p></div>', unsafe_allow_html=True)
+             st.markdown(f'<div class="metric-card kemenkes"><h3>🇮🇩 Batas Kemenkes</h3><p>{kemenkes_val} g</p></div>', unsafe_allow_html=True)
         
         st.markdown("---")
-        st.subheader("Progres Menuju Batas Harian (AHA)")
-        if isinstance(limits['aha'], (int, float)) and limits['aha'] > 0:
-            progress = total_gula / limits['aha']
-            colored_progress_bar(progress)
-            if progress >= 1.0: st.error("MELEBIHI BATAS! Harap lebih berhati-hati.")
+        st.subheader("Progres Menuju Batas Harian")
         
+        # --- UPDATE: MENAMPILKAN 2 PROGRESS BAR ---
+        # Progress Bar untuk AHA
+        if isinstance(aha_val, (int, float)) and aha_val > 0:
+            st.markdown("*Batas AHA (Rekomendasi)*")
+            progress_aha = total_gula / aha_val
+            colored_progress_bar(progress_aha, "var(--aha-color)")
+            if progress_aha >= 1.0: st.warning("Hampir atau melebihi batas AHA!")
+        
+        # Progress Bar untuk Kemenkes
+        if isinstance(kemenkes_val, (int, float)) and kemenkes_val > 0:
+            st.markdown("*Batas Kemenkes (Maksimal)*")
+            progress_kemenkes = total_gula / kemenkes_val
+            colored_progress_bar(progress_kemenkes, "var(--kemenkes-color)")
+            if progress_kemenkes >= 1.0: st.error("MELEBIHI BATAS MAKSIMAL KEMENKES!")
+
         st.markdown("---")
         st.subheader("Rincian Asupan Hari Ini")
         if not st.session_state.tracker.daily_intake:
@@ -418,6 +446,7 @@ if menu == "Laporan Harian":
             st.rerun()
 
 elif menu == "Tambah Asupan":
+    # Kode tidak berubah, sudah optimal
     st.header("📋 Tambah Asupan Makanan/Minuman")
     if not st.session_state.tracker.user_profile:
         st.warning("⚠ Silakan atur profilmu terlebih dahulu.")
@@ -447,38 +476,32 @@ elif menu == "Tambah Asupan":
                     else: st.error(message)
 
 elif menu == "Database Makanan":
+    # Kode tidak berubah, sudah optimal
     st.header("📚 Database Makanan")
     st.info("Cari makanan dan minuman untuk melihat estimasi kandungan gulanya.")
     db_instance = st.session_state.tracker
     
-    categories = {
-        'Minuman Kekinian & Tradisional': ['boba_milk_tea', 'es_kopi_susu_gula_aren', 'thai_tea', 'cheese_tea', 'matcha_latte', 'dalgano_coffee', 'es_cendol', 'es_doger', 'kolak', 'bubur_sumsum'],
-        'Minuman Kemasan & Lainnya': ['soda_cola', 'sprite', 'teh_kotak', 'minuman_isotonik', 'susu_coklat', 'yogurt_drink', 'teh_manis', 'kopi_manis'],
-        'Makanan Manis, Kue, & Cemilan': ['coklat_batang', 'brownies_coklat', 'permen', 'kue_donat', 'es_krim', 'biskuit_manis', 'cookies', 'muffin', 'wafer_coklat', 'martabak_manis', 'kue_lapis', 'serabi'],
-        'Makanan Berat & Cepat Saji': ['nasi_goreng', 'mie_goreng_instan', 'bubur_ayam', 'sate_ayam', 'gado_gado', 'ayam_bakar', 'burger', 'pizza', 'kentang_goreng'],
-        'Bahan & Buah': ['roti_tawar', 'selai_strawberry', 'madu', 'gula_pasir', 'kecap_manis', 'apel', 'pisang', 'mangga', 'kurma']
-    }
-    
     search_term = st.text_input("Cari makanan...", placeholder="Contoh: Boba Milk Tea")
     
-    for category, items in categories.items():
-        # Gabungkan item dari database yang ada dalam kategori ini
-        db_keys = st.session_state.tracker.food_database.keys()
-        relevant_items = [item for item in db_keys if item in items]
+    all_items = sorted(db_instance.food_database.keys())
+    
+    if search_term:
+        filtered_items = [k for k in all_items if search_term.lower() in k.replace('_', ' ').lower()]
+    else:
+        filtered_items = all_items
+
+    for item_key in filtered_items:
+        food_info = db_instance.food_database[item_key]
+        item_name = item_key.replace('_', ' ').title()
+        gula = food_info['gula_per_100']
         
-        # Filter berdasarkan pencarian
-        filtered_items = [k for k in relevant_items if search_term.lower() in k.replace('_', ' ').lower()]
-        
-        if not search_term or filtered_items:
-            with st.expander(f"{category}", expanded=bool(search_term)):
-                for item_key in sorted(filtered_items if search_term else relevant_items):
-                    food_info = db_instance.food_database[item_key]
-                    item_name = item_key.replace('_', ' ').title()
-                    gula = food_info['gula_per_100']
-                    
-                    col1, col2 = st.columns([3,1])
-                    col1.markdown(f"{item_name}")
-                    col2.metric(label="Gula / 100g", value=f"{gula} g")
+        col1, col2 = st.columns([3,1])
+        with col1:
+            st.markdown(f"{item_name}")
+        with col2:
+            st.metric(label="Gula / 100g", value=f"{gula} g")
+        st.markdown("---",)
+
 
 elif menu == "Riwayat & Grafik":
     st.header("📊 Riwayat & Grafik Konsumsi Gula")
@@ -503,12 +526,21 @@ elif menu == "Riwayat & Grafik":
             else:
                 limits = st.session_state.tracker.get_recommended_limit()
                 aha = limits.get('aha')
+                kemenkes = limits.get('kemenkes')
 
                 fig = go.Figure()
+                # Garis Konsumsi Gula
                 fig.add_trace(go.Scatter(x=filtered_dates, y=[st.session_state.tracker.history[d]['total_gula'] for d in filtered_dates], mode='lines+markers', name='Konsumsi Gula', line=dict(color='var(--sugar-color)', width=4), hovertemplate='<b>%{x}</b><br>Gula: %{y:.1f} g<extra></extra>'))
-                if isinstance(aha, (int, float)):
-                    fig.add_trace(go.Scatter(x=filtered_dates, y=[aha] * len(filtered_dates), mode='lines', name=f'Batas AHA ({aha}g)', line=dict(color='var(--warning-color)', dash='dash'), hoverinfo='skip'))
                 
+                # --- UPDATE: MENAMPILKAN 2 GARIS BATAS ---
+                # Garis Batas AHA
+                if isinstance(aha, (int, float)):
+                    fig.add_trace(go.Scatter(x=filtered_dates, y=[aha] * len(filtered_dates), mode='lines', name=f'Batas AHA ({aha}g)', line=dict(color='var(--aha-color)', dash='dash'), hoverinfo='skip'))
+                
+                # Garis Batas Kemenkes
+                if isinstance(kemenkes, (int, float)):
+                    fig.add_trace(go.Scatter(x=filtered_dates, y=[kemenkes] * len(filtered_dates), mode='lines', name=f'Batas Kemenkes ({kemenkes}g)', line=dict(color='var(--kemenkes-color)', dash='longdash'), hoverinfo='skip'))
+
                 fig.update_layout(
                     title_text=f"Grafik Konsumsi Gula", xaxis_title="Tanggal", yaxis_title="Jumlah Gula (g)",
                     plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
@@ -518,6 +550,7 @@ elif menu == "Riwayat & Grafik":
                 st.plotly_chart(fig, use_container_width=True)
 
 elif menu == "Profil Pengguna":
+    # Kode tidak berubah, sudah optimal
     st.header("👤 Profil Pengguna")
     st.write("Informasi ini digunakan untuk menentukan batas rekomendasi asupan gula harianmu.")
     profile = st.session_state.tracker.user_profile
