@@ -198,7 +198,7 @@ def colored_progress_bar(progress, bar_color_var):
     </div>""", unsafe_allow_html=True)
 
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/1837/1837189.png", width=100)
+    st.image(""C:\Users\ACER\Downloads\Gemini_Generated_Image_el7j79el7j79el7j.png"", width=100)
     st.title("GluPal")
     if 'tracker' in st.session_state and st.session_state.tracker.user_profile:
         user_name = st.session_state.tracker.user_profile.get('nama', "Pengguna")
@@ -211,7 +211,30 @@ with st.sidebar:
     st.markdown("---")
     st.info("Pantau gula, jaga kesehatan. Aplikasi ini siap membantumu setiap hari!")
 
-if menu == "Laporan Harian":
+if menu == "Profil Pengguna":
+    st.header("👤 Profil Pengguna")
+    st.write("Informasi ini digunakan untuk menentukan batas rekomendasi asupan gula harianmu.")
+    profile = st.session_state.tracker.user_profile
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        avatar = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" if profile.get('jenis_kelamin', 'pria') == 'pria' else "https://cdn-icons-png.flaticon.com/512/3135/3135789.png"
+        st.image(avatar, width=150)
+    with col2:
+        with st.form("profile_form"):
+            nama = st.text_input("Nama Lengkap", value=profile.get('nama', ''))
+            c1, c2 = st.columns(2)
+            umur = c1.number_input("Umur", min_value=1, max_value=120, value=profile.get('umur', 25))
+            berat = c2.number_input("Berat (kg)", min_value=1.0, value=profile.get('berat_badan', 60.0), format="%.1f")
+            jenis_kelamin = st.selectbox("Jenis Kelamin", ["Pria", "Wanita"], index=1 if profile.get('jenis_kelamin') == 'wanita' else 0)
+            if st.form_submit_button("Simpan Profil 💾"):
+                st.session_state.tracker.set_user_profile(nama, umur, jenis_kelamin, berat)
+                st.success(f"Profil untuk **{nama}** berhasil disimpan!")
+                st.rerun()
+    if profile:
+        limits = st.session_state.tracker.get_recommended_limit()
+        st.success(f"Batas konsumsi gulamu: **Kemenkes: {limits['kemenkes']}g**, **AHA: {limits['aha']}g** per hari.")
+
+elif menu == "Laporan Harian":
     st.title(get_greeting())
     user_name = st.session_state.tracker.user_profile.get('nama', 'Pengguna')
     st.subheader(f"Ini ringkasan gula harianmu, {user_name}.")
@@ -271,24 +294,7 @@ elif menu == "Tambah Asupan":
                     success, message = st.session_state.tracker.add_food_item(nama_makanan, jumlah, satuan)
                     if success: st.success(message)
                     else: st.error(message)
-
-elif menu == "Database Makanan":
-    st.header("📚 Database Makanan")
-    st.info("Cari makanan dan minuman untuk melihat estimasi kandungan gulanya.")
-    db_instance = st.session_state.tracker
-    search_term = st.text_input("Cari makanan...", placeholder="Contoh: Boba Milk Tea")
-    all_items = sorted(db_instance.food_database.keys())
-    if search_term: filtered_items = [k for k in all_items if search_term.lower() in k.replace('_', ' ').lower()]
-    else: filtered_items = all_items
-    for item_key in filtered_items:
-        food_info = db_instance.food_database[item_key]
-        item_name = item_key.replace('_', ' ').title()
-        gula = food_info['gula_per_100']
-        col1, col2 = st.columns([3,1])
-        with col1: st.markdown(f"**{item_name}**")
-        with col2: st.metric(label="Gula / 100g", value=f"{gula} g")
-        st.divider()
-
+                        
 elif menu == "Riwayat & Grafik":
     st.header("📊 Riwayat & Grafik Konsumsi Gula")
     if not st.session_state.tracker.user_profile: st.warning("⚠️ Atur profil untuk melihat grafik.")
@@ -314,26 +320,20 @@ elif menu == "Riwayat & Grafik":
                     fig.add_trace(go.Scatter(x=filtered_dates, y=[kemenkes] * len(filtered_dates), mode='lines', name=f'Batas Kemenkes ({kemenkes}g)', line=dict(color='var(--kemenkes-color)', dash='longdash'), hoverinfo='skip'))
                 fig.update_layout(title_text=f"Grafik Konsumsi Gula", xaxis_title="Tanggal", yaxis_title="Jumlah Gula (g)", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color="var(--text-color)"), yaxis=dict(gridcolor='rgba(128,128,128,0.2)'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), hovermode="x unified")
                 st.plotly_chart(fig, use_container_width=True)
-
-elif menu == "Profil Pengguna":
-    st.header("👤 Profil Pengguna")
-    st.write("Informasi ini digunakan untuk menentukan batas rekomendasi asupan gula harianmu.")
-    profile = st.session_state.tracker.user_profile
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        avatar = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png" if profile.get('jenis_kelamin', 'pria') == 'pria' else "https://cdn-icons-png.flaticon.com/512/3135/3135789.png"
-        st.image(avatar, width=150)
-    with col2:
-        with st.form("profile_form"):
-            nama = st.text_input("Nama Lengkap", value=profile.get('nama', ''))
-            c1, c2 = st.columns(2)
-            umur = c1.number_input("Umur", min_value=1, max_value=120, value=profile.get('umur', 25))
-            berat = c2.number_input("Berat (kg)", min_value=1.0, value=profile.get('berat_badan', 60.0), format="%.1f")
-            jenis_kelamin = st.selectbox("Jenis Kelamin", ["Pria", "Wanita"], index=1 if profile.get('jenis_kelamin') == 'wanita' else 0)
-            if st.form_submit_button("Simpan Profil 💾"):
-                st.session_state.tracker.set_user_profile(nama, umur, jenis_kelamin, berat)
-                st.success(f"Profil untuk **{nama}** berhasil disimpan!")
-                st.rerun()
-    if profile:
-        limits = st.session_state.tracker.get_recommended_limit()
-        st.success(f"Batas konsumsi gulamu: **Kemenkes: {limits['kemenkes']}g**, **AHA: {limits['aha']}g** per hari.")
+                
+elif menu == "Database Makanan":
+    st.header("📚 Database Makanan")
+    st.info("Cari makanan dan minuman untuk melihat estimasi kandungan gulanya.")
+    db_instance = st.session_state.tracker
+    search_term = st.text_input("Cari makanan...", placeholder="Contoh: Boba Milk Tea")
+    all_items = sorted(db_instance.food_database.keys())
+    if search_term: filtered_items = [k for k in all_items if search_term.lower() in k.replace('_', ' ').lower()]
+    else: filtered_items = all_items
+    for item_key in filtered_items:
+        food_info = db_instance.food_database[item_key]
+        item_name = item_key.replace('_', ' ').title()
+        gula = food_info['gula_per_100']
+        col1, col2 = st.columns([3,1])
+        with col1: st.markdown(f"**{item_name}**")
+        with col2: st.metric(label="Gula / 100g", value=f"{gula} g")
+        st.divider()
