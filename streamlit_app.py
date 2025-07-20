@@ -205,7 +205,7 @@ with st.sidebar:
     else:
         user_name = "Pengguna"
     st.write(f"Halo, **{user_name}**!")
-    menu_options = {"🏠 Laporan Harian": "Laporan Harian", "➕ Tambah Asupan": "Tambah Asupan", "📚 Database Makanan": "Database Makanan", "📊 Riwayat & Grafik": "Riwayat & Grafik", "👤 Profil Pengguna": "Profil Pengguna"}
+    menu_options = {"👤 Profil Pengguna": "Profil Pengguna","➕ Tambah Asupan": "Tambah Asupan","🏠 Laporan Harian": "Laporan Harian","📊 Riwayat & Grafik": "Riwayat & Grafik","📚 Database Makanan": "Database Makanan"}
     selection = st.radio("Menu Navigasi:", options=menu_options.keys(), label_visibility="collapsed")
     menu = menu_options[selection]
     st.markdown("---")
