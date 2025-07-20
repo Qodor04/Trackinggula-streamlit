@@ -17,7 +17,7 @@ class SugarTracker:
     Kini dengan fitur penyimpanan riwayat.
     """
     # --- Perbaikan Bug: _init_ harus menggunakan dua garis bawah ---
-    def _init_(self):
+    def __init__(self):
         """Inisialisasi tracker dengan nilai default, database, dan riwayat."""
         self.kemenkes_limit = 50
         self.aha_limits = {
