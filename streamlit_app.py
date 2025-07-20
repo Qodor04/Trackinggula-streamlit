@@ -198,7 +198,7 @@ def colored_progress_bar(progress, bar_color_var):
     </div>""", unsafe_allow_html=True)
 
 with st.sidebar:
-    st.image("https://photos.google.com/photo/AF1QipOGccb4aM2znqY9C4UdsTpJSByPO3NVuldyuPrY", width=100)
+    st.image(""C:\Users\ACER\Downloads\icon GluPal.png"", width=100)
     st.title("GluPal")
     if 'tracker' in st.session_state and st.session_state.tracker.user_profile:
         user_name = st.session_state.tracker.user_profile.get('nama', "Pengguna")
